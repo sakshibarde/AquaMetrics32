@@ -510,7 +510,7 @@ app = Flask(__name__, static_folder=STATIC_DIR)
 CORS(app, resources={r"/api/*": {"origins": [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://aqua-metrics32.vercel.app/",  # ← your actual Vercel URL
+    "https://aqua-metrics32.vercel.app",  # ← your actual Vercel URL
     "https://*.vercel.app",               # ← covers all Vercel preview URLs too
 ]}})
 Compress(app)  # Gzip compression — makes JSON responses much faster
