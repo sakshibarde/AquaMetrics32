@@ -23,3 +23,27 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# Environments
+venv/
+.venv/
+env/
+bin/
+lib/
+include/
+
+# IDE History and cache
+.history/
+.vscode/
+__pycache__/
+*.pyc
+
+# Data and logs
+*.log
+*.csv
+
+backend/venv/
+.history/
+__pycache__/
+*.csv

@@ -34,3 +34,35 @@ yarn-debug.log*
 yarn-error.log*
 /downloads/ # Example: if you have a local downloads folder
 /uploads/   # Example: if you have local uploads
+
+# Database — lives in Supabase now, not in git
+backend/database/*.db
+backend/database/
+
+# Python model binaries — commit these only if under 100MB total
+# backend/models_store/**/*.h5
+# backend/models_store/**/*.pkl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+.env.production.local
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.production.local
+
+# VSCode history (never commit this)
+.history/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary export file
+water_records_export.csv

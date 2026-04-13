@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: aquametrics-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app --workers 2 --timeout 120
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # You set this manually in the Render dashboard
+    autoDeploy: true
