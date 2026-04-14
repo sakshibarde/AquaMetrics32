@@ -331,6 +331,18 @@ def health_check():
 def api_health():
     return jsonify({"status": "ok"})
 
+@app.route('/api/debug-db', methods=['GET'])
+def debug_db():
+    try:
+        # Get column names and first 2 rows
+        df = read_sql("SELECT * FROM water_records LIMIT 2")
+        return jsonify({
+            "columns": list(df.columns),
+            "row_count_sample": len(df),
+            "first_row": df.iloc[0].to_dict() if len(df) > 0 else {}
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── Stations ───────────────────────────────────────────────────────────────────
 @app.route('/api/stations', methods=['GET'])
