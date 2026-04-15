@@ -4,13 +4,15 @@ flask-compress
 flask-caching
 gunicorn
 pandas
-numpy
 requests
-tensorflow>=2.16.1
-scikit-learn
 plotly
-joblib
 matplotlib
 psycopg2-binary
 apscheduler
-h5py
+
+# Pinned — same reasoning as requirements.txt
+numpy<2.0.0
+scikit-learn==1.6.1
+joblib
+h5py==3.11.0
+tensorflow==2.16.2
