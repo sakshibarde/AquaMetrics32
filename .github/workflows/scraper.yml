@@ -388,7 +388,7 @@ jobs:
           python -c "import sys; sys.path.insert(0, 'backend'); from models.correlation_analysis import run_correlation_analysis; run_correlation_analysis()"
 
       - name: Install TensorFlow for ML jobs
-        run: pip install tensorflow==2.13.0 keras==2.13.0
+        run: pip install tensorflow==2.13.0
 
       - name: Run Anomaly Detection (TensorFlow)
         env:
