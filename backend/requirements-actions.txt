@@ -14,4 +14,3 @@ matplotlib
 psycopg2-binary
 apscheduler
 h5py
-keras
