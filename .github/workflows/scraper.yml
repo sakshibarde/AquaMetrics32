@@ -300,7 +300,9 @@ jobs:
           python-version: '3.9'
 
       - name: Install TensorFlow (CPU only)
-        run: pip install pandas numpy psycopg2-binary scikit-learn plotly joblib tensorflow-cpu>=2.16.1 h5py
+        run: |
+          pip install "numpy<2.0.0"
+          pip install pandas psycopg2-binary scikit-learn plotly joblib tensorflow-cpu>=2.16.1 h5py
 
       - name: Run Daily Predictions
         env:
