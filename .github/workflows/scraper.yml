@@ -1,3 +1,348 @@
+# # name: Hourly Scrape and Daily Batch Jobs
+
+# # on:
+# #   workflow_dispatch:
+# #   schedule:
+# #     - cron: '5 * * * *'
+
+# # permissions:
+# #   contents: write
+
+# # jobs:
+# #   # ── Job 1: Scrape CPCB data ────────────────────────────────────────────────
+# #   scrape-and-commit:
+# #     runs-on: ubuntu-latest
+# #     outputs:
+# #       data_updated: ${{ steps.commit_data.outputs.committed }}
+# #     steps:
+# #       - uses: actions/checkout@v4
+
+# #       - uses: actions/setup-python@v5
+# #         with:
+# #           python-version: '3.9'
+
+# #       - name: Install scraper dependencies
+# #         run: pip install pandas requests numpy
+
+# #       - name: Create output directory
+# #         run: mkdir -p backend/static/scraped_data
+
+# #       - name: Run CPCB Scraper
+# #         run: python cpcb_scraper.py
+
+# #       - name: Commit scraped data
+# #         id: commit_data
+# #         run: |
+# #           git config --global user.name 'github-actions[bot]'
+# #           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+# #           git add backend/static/scraped_data/latest_cpcb_data.json
+# #           if git diff --staged --quiet; then
+# #             echo "No changes."
+# #             echo "committed=false" >> $GITHUB_OUTPUT
+# #           else
+# #             git commit -m "Update CPCB water quality data"
+# #             echo "committed=true" >> $GITHUB_OUTPUT
+# #             git push
+# #           fi
+
+# #   # ── Job 2: Update Supabase database ───────────────────────────────────────
+# #   update-database:
+# #     runs-on: ubuntu-latest
+# #     needs: scrape-and-commit
+# #     outputs:
+# #       hour: ${{ steps.date.outputs.hour }} # Fixed: Added explicit job output
+# #     steps:
+# #       - uses: actions/checkout@v4
+# #         with:
+# #           fetch-depth: 0
+# #           ref: 'main'
+
+# #       - uses: actions/setup-python@v5
+# #         with:
+# #           python-version: '3.9'
+
+# #       - name: Install DB dependencies only (no tensorflow)
+# #         run: pip install pandas numpy psycopg2-binary scikit-learn
+
+# #       - name: Run Database Update Pipeline
+# #         env:
+# #           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# #         run: python backend/update_pipeline.py
+
+# #       - name: Get current UTC hour
+# #         id: date
+# #         run: echo "hour=$(date -u +'%H')" >> $GITHUB_OUTPUT
+
+# #   # ── Job 3: Run analysis batch jobs (daily, splits to avoid OOM) ───────────
+# #   run-batch-jobs:
+# #     runs-on: ubuntu-latest
+# #     needs: update-database
+# #     # Fixed: Correctly referencing the job-level output from Job 2
+# #     if: |
+# #       (needs.update-database.result == 'success') && 
+# #       ((github.event_name == 'workflow_dispatch') || (needs.update-database.outputs.hour == '00'))
+# #     permissions:
+# #       contents: write
+
+# #     steps:
+# #       - uses: actions/checkout@v4
+# #         with:
+# #           fetch-depth: 0
+# #           ref: 'main'
+
+# #       - uses: actions/setup-python@v5
+# #         with:
+# #           python-version: '3.9'
+
+# #       - name: Install all dependencies
+# #         run: pip install -r backend/requirements-actions.txt
+
+# #       - name: Run Day/Night Analysis (no TensorFlow)
+# #         env:
+# #           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# #         run: |
+# #           python -c "import sys; sys.path.insert(0, 'backend'); from models.daynight_analysis import run_day_night_analysis; run_day_night_analysis()"
+
+# #       - name: Run Correlation Analysis (no TensorFlow)
+# #         env:
+# #           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# #         run: |
+# #           python -c "import sys; sys.path.insert(0, 'backend'); from models.correlation_analysis import run_correlation_analysis; run_correlation_analysis()"
+
+# #       - name: Install TensorFlow for ML jobs
+# #         run: pip install tensorflow>=2.16.1
+
+# #       - name: Run Anomaly Detection (TensorFlow)
+# #         env:
+# #           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# #         run: |
+# #           python -c "import sys; sys.path.insert(0, 'backend'); from models.anomaly_detection import run_anomaly_detection; run_anomaly_detection()"
+
+# #       - name: Run Predictions (TensorFlow)
+# #         env:
+# #           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# #         run: |
+# #           python -c "import sys; sys.path.insert(0, 'backend'); from models.predictions import create_daily_prediction_plots, create_weekly_prediction_plots; create_daily_prediction_plots(); create_weekly_prediction_plots()"
+
+# #       - name: Precompute Station Quality
+# #         env:
+# #           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# #         run: |
+# #           python -c "import sys; sys.path.insert(0, 'backend'); from run_all_batch_jobs import precompute_station_quality; precompute_station_quality()"
+
+# #       - name: Commit all generated files
+# #         run: |
+# #           git config --global user.name 'github-actions[bot]'
+# #           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+# #           git add backend/static/predictions/daily/*.json || true
+# #           git add backend/static/predictions/weekly/*.json || true
+# #           git add backend/static/predictions/weekly_details/*.json || true
+# #           git add backend/static/predictions/*.json || true
+# #           git add backend/static/correlation/*.json || true
+# #           git add backend/static/anomaly/*.json || true
+# #           git add backend/static/daynight/*.png || true
+# #           git add backend/static/station_quality.json || true
+# #           if git diff --staged --quiet; then
+# #             echo "No changes in generated files."
+# #           else
+# #             git commit -m "Update generated analysis plots"
+# #             git pull --rebase=true
+# #             git push
+# #           fi
+
+
+
+# name: Hourly Scrape and Daily Batch Jobs
+
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: '5 * * * *'
+
+# permissions:
+#   contents: write
+
+# jobs:
+#   # ── Job 1: Scrape CPCB data ────────────────────────────────────────────────
+#   scrape-and-commit:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.9'
+
+#       - name: Install scraper dependencies
+#         run: pip install pandas requests numpy
+
+#       - name: Create output directory
+#         run: mkdir -p backend/static/scraped_data
+
+#       - name: Run CPCB Scraper
+#         run: python cpcb_scraper.py
+
+#       - name: Commit scraped data
+#         run: |
+#           git config --global user.name 'github-actions[bot]'
+#           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+#           git add backend/static/scraped_data/latest_cpcb_data.json
+#           if git diff --staged --quiet; then
+#             echo "No changes."
+#           else
+#             git commit -m "Update CPCB water quality data"
+#           fi
+#           git push || true
+
+
+#   # ── Job 2: Update Supabase database ───────────────────────────────────────
+#   update-database:
+#     runs-on: ubuntu-latest
+#     needs: scrape-and-commit
+
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           ref: 'main'
+
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.9'
+
+#       - name: Install DB dependencies (no TensorFlow)
+#         run: pip install pandas numpy psycopg2-binary scikit-learn
+
+#       - name: Run Database Update Pipeline
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#         run: python backend/update_pipeline.py
+
+#       - name: Get current UTC hour
+#         id: date
+#         run: echo "hour=$(date -u +'%H')" >> $GITHUB_OUTPUT
+
+#     outputs:
+#       hour: ${{ steps.date.outputs.hour }}
+
+
+#   # ── Job 3: Lightweight analysis — no TensorFlow ───────────────────────────
+#   run-lightweight-jobs:
+#     runs-on: ubuntu-latest
+#     needs: update-database
+#     if: |
+#       needs.update-database.result == 'success' &&
+#       (github.event_name == 'workflow_dispatch' || needs.update-database.outputs.hour == '00')
+#     permissions:
+#       contents: write
+
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           ref: 'main'
+
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.9'
+
+#       - name: Install lightweight dependencies
+#         run: pip install pandas numpy psycopg2-binary scikit-learn plotly matplotlib joblib
+
+#       - name: Run Day/Night Analysis
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#         run: python -c "import sys; sys.path.insert(0,'backend'); from models.daynight_analysis import run_day_night_analysis; run_day_night_analysis()"
+
+#       - name: Run Correlation Analysis
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#         run: python -c "import sys; sys.path.insert(0,'backend'); from models.correlation_analysis import run_correlation_analysis; run_correlation_analysis()"
+
+#       - name: Run Anomaly Detection (Isolation Forest)
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#         run: python -c "import sys; sys.path.insert(0,'backend'); from models.anomaly_detection import run_anomaly_detection; run_anomaly_detection()"
+
+#       - name: Commit outputs
+#         run: |
+#           git config --global user.name 'github-actions[bot]'
+#           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+#           git add backend/static/correlation/*.json  || true
+#           git add backend/static/anomaly/*.json      || true
+#           git add backend/static/daynight/*.png      || true
+#           if git diff --staged --quiet; then
+#             echo "No changes."
+#           else
+#             git commit -m "Update analysis outputs"
+#             git pull --rebase=true
+#             git push
+#           fi
+
+
+#   # ── Job 4: LSTM Predictions — TensorFlow in separate job ──────────────────
+#   run-prediction-jobs:
+#     runs-on: ubuntu-latest
+#     needs: run-lightweight-jobs
+#     if: always() && needs.run-lightweight-jobs.result == 'success'
+#     permissions:
+#       contents: write
+
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           ref: 'main'
+
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.10' # <--- CHANGE THIS TO 3.10
+
+#       - name: Install TensorFlow (CPU only)
+#         run: |
+#           pip install --upgrade pip
+#           pip install "numpy<2.0.0" 
+#           pip install pandas psycopg2-binary scikit-learn plotly joblib h5py
+#           pip install tensorflow-cpu>=2.16.1 # <--- Use the version that matches Keras 3
+
+#       - name: Run Daily Predictions
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#           TF_CPP_MIN_LOG_LEVEL: '3' # Suppress noise
+#         run: python -c "import sys; sys.path.insert(0,'backend'); from models.predictions import create_daily_prediction_plots; create_daily_prediction_plots()"
+
+#       - name: Run Weekly Predictions
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#           TF_CPP_MIN_LOG_LEVEL: '3'
+#         run: python -c "import sys; sys.path.insert(0,'backend'); from models.predictions import create_weekly_prediction_plots; create_weekly_prediction_plots()"
+
+#       - name: Precompute Station Quality
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#         run: python -c "import sys; sys.path.insert(0,'backend'); from run_all_batch_jobs import precompute_station_quality; precompute_station_quality()"
+
+#       - name: Commit prediction outputs
+#         run: |
+#           git config --global user.name 'github-actions[bot]'
+#           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+#           git add backend/static/predictions/daily/*.json          || true
+#           git add backend/static/predictions/weekly/*.json         || true
+#           git add backend/static/predictions/weekly_details/*.json || true
+#           git add backend/static/predictions/*.json                || true
+#           git add backend/static/station_quality.json              || true
+#           if git diff --staged --quiet; then
+#             echo "No changes."
+#           else
+#             git commit -m "Update predictions and station quality"
+#             git pull --rebase=true
+#             git push
+#           fi
+
+
+
+
 # name: Hourly Scrape and Daily Batch Jobs
 
 # on:
@@ -248,7 +593,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install lightweight dependencies
-        run: pip install pandas numpy psycopg2-binary scikit-learn plotly matplotlib joblib
+        run: pip install pandas "numpy<2.0.0" psycopg2-binary "scikit-learn==1.6.1" plotly matplotlib joblib
 
       - name: Run Day/Night Analysis
         env:
@@ -302,9 +647,12 @@ jobs:
       - name: Install TensorFlow (CPU only)
         run: |
           pip install --upgrade pip
-          pip install "numpy<2.0.0" 
-          pip install pandas psycopg2-binary scikit-learn plotly joblib h5py
-          pip install tensorflow-cpu>=2.16.1 # <--- Use the version that matches Keras 3
+          # Install numpy first and pin it — pip must not upgrade it when TF arrives
+          pip install "numpy<2.0.0"
+          pip install pandas psycopg2-binary "scikit-learn==1.6.1" plotly joblib "h5py==3.11.0"
+          # Pin TF to a specific version; >=2.16 ships Keras 3 (standalone keras package).
+          # tensorflow-cpu is the same as tensorflow but without GPU kernels — safe for CI.
+          pip install "tensorflow-cpu==2.16.2"
 
       - name: Run Daily Predictions
         env:
