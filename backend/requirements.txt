@@ -24,6 +24,7 @@
 # # selenium # If dynamic scraping is needed
 
 
+
 flask
 flask-cors
 flask-compress
@@ -32,10 +33,11 @@ gunicorn
 pandas
 numpy
 requests
-tensorflow
 scikit-learn
 plotly
 joblib
 matplotlib
 psycopg2-binary
 apscheduler
+h5py
+keras
