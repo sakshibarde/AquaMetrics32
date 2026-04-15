@@ -374,8 +374,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install all dependencies
-        run: |
-          pip install pandas numpy psycopg2-binary scikit-learn plotly matplotlib joblib
+        run: pip install -r backend/requirements-actions.txt
 
       - name: Run Day/Night Analysis (no TensorFlow)
         env:
