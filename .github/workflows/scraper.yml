@@ -297,27 +297,31 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10' # <--- CHANGE THIS TO 3.10
 
       - name: Install TensorFlow (CPU only)
         run: |
-          pip install "numpy<2.0.0"
-          pip install pandas psycopg2-binary scikit-learn plotly joblib tensorflow-cpu>=2.16.1 h5py
+          pip install --upgrade pip
+          pip install "numpy<2.0.0" 
+          pip install pandas psycopg2-binary scikit-learn plotly joblib h5py
+          pip install tensorflow-cpu>=2.16.1 # <--- Use the version that matches Keras 3
 
       - name: Run Daily Predictions
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TF_CPP_MIN_LOG_LEVEL: '3' # Suppress noise
         run: python -c "import sys; sys.path.insert(0,'backend'); from models.predictions import create_daily_prediction_plots; create_daily_prediction_plots()"
 
       - name: Run Weekly Predictions
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TF_CPP_MIN_LOG_LEVEL: '3'
         run: python -c "import sys; sys.path.insert(0,'backend'); from models.predictions import create_weekly_prediction_plots; create_weekly_prediction_plots()"
 
       - name: Precompute Station Quality
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pip install tensorflow-cpu==2.13.0 h5py scikit-learn joblib && python -c "import sys; sys.path.insert(0,'backend'); from run_all_batch_jobs import precompute_station_quality; precompute_station_quality()"
+        run: python -c "import sys; sys.path.insert(0,'backend'); from run_all_batch_jobs import precompute_station_quality; precompute_station_quality()"
 
       - name: Commit prediction outputs
         run: |
