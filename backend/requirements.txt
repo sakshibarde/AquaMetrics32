@@ -40,4 +40,4 @@ matplotlib
 psycopg2-binary
 apscheduler
 h5py
-keras
+tensorflow>=2.16.1
