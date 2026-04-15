@@ -305,7 +305,7 @@ WEEKLY_SUMMARY_PATH  = os.path.join(STATIC_DIR, "predictions/weekly_summary_pred
 STATION_QUALITY_PATH = os.path.join(STATIC_DIR, "station_quality.json")
 
 app = Flask(__name__, static_folder=STATIC_DIR)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 Compress(app)
 
 # ── Load dependencies safely ───────────────────────────────────────────────────
