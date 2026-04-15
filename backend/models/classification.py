@@ -156,8 +156,10 @@ warnings.filterwarnings('ignore', category=UserWarning, module='keras')
 
 # --- PART 1: LOAD PRE-TRAINED MODELS (ONCE) ---
 # Use a relative-to-this-file path so it works regardless of cwd.
-_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = os.path.join(_THIS_DIR, "models_store/classification")
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) # This is /backend/models
+_BACKEND_DIR = os.path.dirname(_CURRENT_DIR)             # This is /backend
+# Correctly point to backend/models_store/classification
+MODEL_DIR = os.path.join(_BACKEND_DIR, "models_store", "classification")
 print("Loading classification models...")
 
 try:
