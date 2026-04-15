@@ -13,5 +13,4 @@ matplotlib
 psycopg2-binary
 apscheduler
 h5py
-keras
 tensorflow-cpu==2.13.0
