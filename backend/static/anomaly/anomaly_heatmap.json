@@ -410,7 +410,7 @@
           "<b>Parameter: Depth</b><br>Station: 11822<br>Anomalies: 206<br>Dates: 2025-08-12, 2025-09-07, 2025-09-08, 2025-09-25, 2025-09-26",
           "<b>Parameter: Dissolved Oxygen</b><br>Station: 11822<br>Anomalies: 205<br>Dates: 2025-07-31, 2025-08-07, 2025-08-09, 2025-08-10, 2025-08-11",
           "<b>Parameter: Nitrate</b><br>Station: 11822<br>Anomalies: 12<br>Dates: 2025-09-15, 2025-09-16",
-          "<b>Parameter: Water Level</b><br>Station: 11822<br>Anomalies: 200<br>Dates: 2025-08-05, 2025-08-06, 2025-08-07, 2025-08-08, 2025-08-09",
+          "<b>Parameter: Water Level</b><br>Station: 11822<br>Anomalies: 208<br>Dates: 2025-08-04, 2025-08-05, 2025-08-06, 2025-08-07, 2025-08-08",
           "<b>Parameter: Water Temperature</b><br>Station: 11822<br>Anomalies: 208<br>Dates: 2025-09-07, 2025-09-08, 2025-09-26, 2025-09-27, 2025-09-29",
           "<b>Parameter: Water Turbidity</b><br>Station: 11822<br>Anomalies: 208<br>Dates: 2025-07-29, 2025-10-06, 2025-10-23, 2025-10-24, 2025-10-25",
           "<b>Parameter: pH</b><br>Station: 11822<br>Anomalies: 197<br>Dates: 2025-07-29, 2025-07-30, 2025-08-02, 2025-08-03, 2025-08-04"
@@ -786,7 +786,7 @@
           206,
           205,
           12,
-          200,
+          208,
           208,
           208,
           197
@@ -1210,7 +1210,7 @@
           206.0,
           205.0,
           12.0,
-          200.0,
+          208.0,
           208.0,
           208.0,
           197.0
