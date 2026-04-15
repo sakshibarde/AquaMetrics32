@@ -305,6 +305,7 @@ WEEKLY_SUMMARY_PATH  = os.path.join(STATIC_DIR, "predictions/weekly_summary_pred
 STATION_QUALITY_PATH = os.path.join(STATIC_DIR, "station_quality.json")
 
 app = Flask(__name__, static_folder=STATIC_DIR)
+app.url_map.strict_slashes = False
 CORS(app, resources={
     r"/api/*": {
         "origins": ["https://aqua-metrics32.vercel.app"],
@@ -390,7 +391,6 @@ def get_latest_query():
         ORDER BY "{sid}", "{ts}" DESC NULLS LAST
     """
 
-
 # ── Health check ───────────────────────────────────────────────────────────────
 @app.route('/', methods=['GET', 'HEAD'])
 def health_check():
@@ -456,8 +456,10 @@ def get_stations():
 
 
 # ── Classification ─────────────────────────────────────────────────────────────
-@app.route('/api/classify', methods=['POST'])
+@app.route('/api/classify', methods=['POST', 'OPTIONS'])
 def handle_classification():
+    if request.method == 'OPTIONS':
+        return '', 204
     if not CLASSIFICATION_AVAILABLE:
         return jsonify({"status": "error", "message": "Model not loaded."}), 503
     try:
