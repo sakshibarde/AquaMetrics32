@@ -184,6 +184,16 @@ try:
         features = json.load(f)
         
     print("✅ Classification model, scaler, and encoder loaded successfully.")
+
+    # Warm up a single forward pass so the first real request doesn't pay TF init/JIT cost.
+    # Keep this tiny to reduce startup time.
+    try:
+        _dummy = np.zeros((1, len(features)), dtype=np.float32)
+        _ = model.predict(_dummy, verbose=0)
+        print("✅ Classification model warmed up.")
+    except Exception as _warmup_err:
+        # Warmup failure shouldn't take down the server; the request path will surface errors.
+        print(f"⚠️  Model warmup skipped/failed: {_warmup_err}")
     
 except Exception as e:
     print(f"🔴 CRITICAL ERROR: Failed to load classification model from '{MODEL_DIR}'.")

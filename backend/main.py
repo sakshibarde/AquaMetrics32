@@ -292,6 +292,12 @@ from datetime import datetime
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Limit thread fan-out on small Render instances (TensorFlow/OpenMP).
+# Must be set before importing TensorFlow (happens in models.classification).
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
+
 LOCATIONS_CSV_PATH   = os.path.join(BACKEND_DIR, "data/cpcb_station_locations.csv")
 STATIC_DIR           = os.path.join(BACKEND_DIR, "static")
 DAILY_PRED_DIR       = os.path.join(STATIC_DIR, "predictions/daily")

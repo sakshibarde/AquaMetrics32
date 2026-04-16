@@ -4,8 +4,16 @@ services:
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    # TensorFlow models are large; multiple workers can thrash memory/CPU on small instances.
+    # Preload + single worker avoids re-loading the model per worker and reduces cold-start stalls.
+    startCommand: gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 300 --preload
     envVars:
       - key: DATABASE_URL
         sync: false   # You set this manually in the Render dashboard
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: TF_NUM_INTRAOP_THREADS
+        value: "1"
+      - key: TF_NUM_INTEROP_THREADS
+        value: "1"
     autoDeploy: true
