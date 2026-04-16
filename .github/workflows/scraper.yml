@@ -649,9 +649,7 @@ jobs:
           pip install --upgrade pip
           # Install numpy first and pin it — pip must not upgrade it when TF arrives
           pip install "numpy<2.0.0"
-          pip install pandas psycopg2-binary "scikit-learn==1.6.1" plotly joblib "h5py==3.11.0" matplotlib
-          # Pin TF to a specific version; >=2.16 ships Keras 3 (standalone keras package).
-          # tensorflow-cpu is the same as tensorflow but without GPU kernels — safe for CI.
+          pip install pandas psycopg2-binary "scikit-learn==1.6.1" plotly joblib matplotlib "h5py==3.11.0"
           pip install "tensorflow-cpu==2.16.2"
 
       - name: Run Daily Predictions

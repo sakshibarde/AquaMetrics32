@@ -140,135 +140,63 @@
 
 
 
-# models/classification.py
-import os
-import json
-import joblib
-import numpy as np
-import pandas as pd
-import warnings
+# models/classification.py  (lightweight sklearn version)
+import os, json, joblib, numpy as np, pandas as pd, warnings
 
-# In TF 2.16+, keras became a standalone package (Keras 3).
-# Always import through tensorflow.keras to avoid segfaults.
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-warnings.filterwarnings('ignore', category=UserWarning, module='tensorflow')
-warnings.filterwarnings('ignore', category=UserWarning, module='keras')
-
-# --- PART 1: LOAD PRE-TRAINED MODELS (ONCE) ---
-# Use a relative-to-this-file path so it works regardless of cwd.
-_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) # This is /backend/models
-_BACKEND_DIR = os.path.dirname(_CURRENT_DIR)             # This is /backend
-# Correctly point to backend/models_store/classification
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_BACKEND_DIR = os.path.dirname(_CURRENT_DIR)
 MODEL_DIR = os.path.join(_BACKEND_DIR, "models_store", "classification")
+
 print("Loading classification models...")
-
 try:
-    from tensorflow.keras.models import load_model  # safe import for TF 2.16+
-
-    model_path    = os.path.join(MODEL_DIR, 'classification_model.h5')
-    scaler_path   = os.path.join(MODEL_DIR, 'classification_scaler.pkl')
-    encoder_path  = os.path.join(MODEL_DIR, 'classification_label_encoder.pkl')
-    features_path = os.path.join(MODEL_DIR, 'classification_features.json')
-
-    # 1. Load the Keras Model
-    model = load_model(model_path, compile=False)  # compile=False makes loading faster
-    
-    # 2. Load the Scaler
-    scaler = joblib.load(scaler_path)
-    
-    # 3. Load the Label Encoder
-    label_encoder = joblib.load(encoder_path)
-    
-    # 4. Load the Feature List
-    with open(features_path, 'r') as f:
+    model         = joblib.load(os.path.join(MODEL_DIR, 'classification_model.pkl'))
+    scaler        = joblib.load(os.path.join(MODEL_DIR, 'classification_scaler.pkl'))
+    label_encoder = joblib.load(os.path.join(MODEL_DIR, 'classification_label_encoder.pkl'))
+    with open(os.path.join(MODEL_DIR, 'classification_features.json')) as f:
         features = json.load(f)
-        
-    print("✅ Classification model, scaler, and encoder loaded successfully.")
-
-    # Warm up a single forward pass so the first real request doesn't pay TF init/JIT cost.
-    # Keep this tiny to reduce startup time.
-    try:
-        _dummy = np.zeros((1, len(features)), dtype=np.float32)
-        _ = model.predict(_dummy, verbose=0)
-        print("✅ Classification model warmed up.")
-    except Exception as _warmup_err:
-        # Warmup failure shouldn't take down the server; the request path will surface errors.
-        print(f"⚠️  Model warmup skipped/failed: {_warmup_err}")
-    
+    print("✅ Loaded successfully.")
 except Exception as e:
-    print(f"🔴 CRITICAL ERROR: Failed to load classification model from '{MODEL_DIR}'.")
-    print(f"Error: {e}")
-    print("➡️ Make sure 'classification_model.h5', 'classification_scaler.pkl', 'classification_label_encoder.pkl', and 'classification_features.json' are in the 'models' folder.")
+    print(f"🔴 Failed to load: {e}")
     model, scaler, label_encoder, features = None, None, None, []
 
 
-# --- PART 2: PREDICTION FUNCTIONS (FOR YOUR API) ---
-
 def get_insights(predicted_class):
-    """Generates simple insights based on the predicted class."""
-    if predicted_class == 'Bad' or predicted_class == 'Very Bad':
-        return "Preventive measures advised: This water is not safe. Reduce industrial/agricultural discharge, improve wastewater treatment, and prevent contamination."
+    if predicted_class in ('Bad', 'Very Bad'):
+        return "Preventive measures advised: This water is not safe. Reduce industrial/agricultural discharge, improve wastewater treatment."
     elif predicted_class == 'Medium':
-        return "Water quality is average. It may be usable for some purposes, but not for drinking. Monitoring is recommended."
-    elif predicted_class == 'Good' or predicted_class == 'Excellent':
-        return "The water quality is good to excellent. It is suitable for most uses, including recreation. May be drinkable after standard purification."
-    else:
-        return "Prediction uncertain."
+        return "Water quality is average. Not suitable for drinking. Monitoring recommended."
+    elif predicted_class in ('Good', 'Excellent'):
+        return "Good to excellent quality. Suitable for most uses. May be drinkable after standard purification."
+    return "Prediction uncertain."
+
 
 def predict_water_quality(user_input_dict):
-    """
-    Takes user input as a dictionary and returns a prediction dictionary.
-    This is the function your main.py will call.
-    """
     if model is None:
-        return {"status": "error", "message": "Model not loaded. Server error."}
-        
+        return {"status": "error", "message": "Model not loaded."}
     try:
-        # --- CRITICAL ---
-        # Create a DataFrame from the user's dictionary.
-        # By passing columns=features, we GUARANTEE the column order
-        # is the same as the one the model was trained on.
-        input_df = pd.DataFrame(user_input_dict, index=[0])
-        input_df = input_df[features] # Enforce column order
-        
-        # Convert all to numeric, forcing errors to NaN
-        input_df_numeric = input_df.apply(pd.to_numeric, errors='coerce')
-        
-        # Check if any required features are missing (NaN)
-        if input_df_numeric.isnull().values.any():
-            missing = input_df_numeric.columns[input_df_numeric.isnull().any()].tolist()
-            return {"status": "error", "message": f"Missing or invalid numeric value for: {', '.join(missing)}"}
+        input_df = pd.DataFrame([user_input_dict])[features]
+        input_df = input_df.apply(pd.to_numeric, errors='coerce')
 
-        input_array = input_df_numeric.values
-        
-        # Scale the user's input
-        scaled_input = scaler.transform(input_array)
-        
-        # Make the prediction
-        with warnings.catch_warnings():
-             warnings.simplefilter("ignore") # Suppress prediction warnings
-             prediction_probs = model.predict(scaled_input)
-             
-        predicted_class_index = np.argmax(prediction_probs, axis=1)[0]
-        
-        # Decode the prediction
-        predicted_class_label = label_encoder.inverse_transform([predicted_class_index])[0]
-        
-        # Generate insights
-        insights = get_insights(predicted_class_label)
+        if input_df.isnull().values.any():
+            missing = input_df.columns[input_df.isnull().any()].tolist()
+            return {"status": "error", "message": f"Missing values for: {', '.join(missing)}"}
 
-        # Create a nice dictionary of probabilities
-        class_probs = {label_encoder.inverse_transform([i])[0]: float(prob) for i, prob in enumerate(prediction_probs[0])}
+        scaled = scaler.transform(input_df)
+        probs  = model.predict_proba(scaled)[0]
+        idx    = int(np.argmax(probs))
+        label  = label_encoder.inverse_transform([idx])[0]
 
         return {
             "status": "success",
-            "class": predicted_class_label,
-            "insights": insights,
-            "probabilities": class_probs
+            "class": label,
+            "insights": get_insights(label),
+            "probabilities": {
+                label_encoder.inverse_transform([i])[0]: float(p)
+                for i, p in enumerate(probs)
+            }
         }
     except Exception as e:
-        return {"status": "error", "message": f"Prediction failed: {e}. Check input values."}
-
+        return {"status": "error", "message": f"Prediction failed: {e}"}
 # --- This block is for testing the script directly ---
 if __name__ == "__main__":
     if model:

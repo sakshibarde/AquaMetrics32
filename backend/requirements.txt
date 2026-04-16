@@ -16,8 +16,8 @@ scikit-learn==1.6.1
 joblib
 
 # h5py must be pinned — mismatches cause segfaults when loading .h5 models
-h5py==3.11.0
+#h5py==3.11.0
 
 # tensorflow-cpu pinned: >=2.16 uses standalone Keras 3 (keras package).
 # Do NOT use bare `from keras.models import ...` — always use tensorflow.keras
-tensorflow-cpu==2.16.2
+#tensorflow-cpu==2.16.2
