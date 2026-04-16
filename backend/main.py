@@ -306,13 +306,7 @@ STATION_QUALITY_PATH = os.path.join(STATIC_DIR, "station_quality.json")
 
 app = Flask(__name__, static_folder=STATIC_DIR)
 app.url_map.strict_slashes = False
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["https://aqua-metrics32.vercel.app"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
+CORS(app)
 Compress(app)
 
 # ── Load dependencies safely ───────────────────────────────────────────────────
