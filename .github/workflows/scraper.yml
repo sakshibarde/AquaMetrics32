@@ -75,7 +75,7 @@ jobs:
 
   # ── Job 3: Lightweight analysis — no TensorFlow ───────────────────────────
   run-lightweight-jobs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: update-database
     if: |
       needs.update-database.result == 'success' &&
